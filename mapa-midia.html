@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Villagio Vêneto — Mídia OOH</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#161b27,#0d1117);border-bottom:1px solid #21262d;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-logo{width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(59,130,246,.35);flex-shrink:0}
+.hd-title h1{font-size:14px;font-weight:700;color:#f0f6fc}
+.hd-title p{font-size:10px;color:#6e7681;margin-top:1px}
+.hd-budget{background:linear-gradient(135deg,#0d2137,#0a1e30);border:1px solid #1f6feb44;border-radius:12px;padding:7px 16px;text-align:right;flex-shrink:0}
+.hd-budget label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#58a6ff;font-weight:700;display:block}
+.hd-budget .total-val{font-size:20px;font-weight:800;color:#3fb950;letter-spacing:-.5px;line-height:1.1}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:310px;background:#0d1117;border-right:1px solid #21262d;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-scroll{flex:1;overflow-y:auto;padding:0 0 4px}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}
+.sec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:#484f58;padding:10px 12px 5px}
+
+/* CATEGORY ROWS */
+.cat-row{display:flex;align-items:center;gap:9px;padding:7px 12px;cursor:pointer;border-bottom:1px solid #161b22;transition:background .15s}
+.cat-row:hover{background:#161b22}
+.cat-row.disabled{opacity:.4}
+.cat-icon{font-size:14px;flex-shrink:0;width:22px;text-align:center}
+.cat-name{flex:1;font-size:12px;font-weight:600;color:#c9d1d9}
+.cat-count{font-size:10px;color:#484f58}
+.cat-price{font-size:11px;font-weight:700;color:#3fb950;min-width:70px;text-align:right}
+.cat-price.none{color:#30363d}
+
+/* TOGGLE SWITCH */
+.sw{position:relative;width:34px;height:18px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw-track{position:absolute;inset:0;border-radius:9px;background:#21262d;transition:.2s;cursor:pointer;border:1px solid #30363d}
+.sw input:checked+.sw-track{background:#1f6feb;border-color:#388bfd}
+.sw-track::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+.sw-track::after{left:18px}
+
+/* CONTRACTED section */
+.contracted-list{border-top:1px solid #161b22}
+.ct-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid #161b22}
+.ct-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#7c2d12;color:#fb923c;border:1px solid #c2410c55;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.ct-body{flex:1;min-width:0}
+.ct-name{font-size:11px;font-weight:600;color:#fbbf24}
+.ct-sub{font-size:9px;color:#6e7681;margin-top:1px}
+
+/* OUTDOOR ITEMS */
+.outdoor-list{border-top:1px solid #161b22}
+.od-controls{display:flex;gap:6px;padding:7px 12px;border-bottom:1px solid #21262d}
+.od-btn{flex:1;font-size:10px;font-weight:600;padding:4px 0;border-radius:5px;border:1px solid #30363d;background:#161b22;color:#8b949e;cursor:pointer;transition:all .15s}
+.od-btn:hover{background:#21262d;color:#c9d1d9}
+.od-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid #161b22;cursor:pointer;transition:background .15s}
+.od-item:hover{background:#161b22}
+.od-item.deselected{opacity:.38}
+.cb{width:15px;height:15px;border-radius:4px;border:1.5px solid #30363d;background:#21262d;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.cb.on{background:#1f6feb;border-color:#388bfd}
+.cb.on::after{content:'✓';font-size:9px;color:#fff;font-weight:700}
+.od-body{flex:1;min-width:0}
+.od-name{font-size:11px;font-weight:600;color:#c9d1d9;line-height:1.3}
+.od-prices{display:flex;gap:6px;margin-top:2px;flex-wrap:wrap}
+.od-price-tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600}
+.od-price-tag.veic{background:#0d2137;color:#58a6ff;border:1px solid #1f6feb44}
+.od-price-tag.lona{background:#0d1f0d;color:#3fb950;border:1px solid #238636aa}
+.od-dist{font-size:9px;color:#6e7681;margin-top:1px}
+.od-total-col{font-size:11px;font-weight:700;color:#e3b341;min-width:60px;text-align:right;flex-shrink:0;padding-top:2px}
+
+/* ACTION BUTTONS */
+.action-bar{display:flex;gap:6px;padding:8px 12px;border-top:1px solid #21262d;flex-shrink:0}
+.act-btn{flex:1;font-size:11px;font-weight:600;padding:7px 6px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.act-btn.save{background:#0d2137;color:#58a6ff;border:1px solid #1f6feb55}
+.act-btn.save:hover{background:#1f6feb22;border-color:#388bfd}
+.act-btn.export{background:#0d1f0d;color:#3fb950;border:1px solid #23863655}
+.act-btn.export:hover{background:#23863622;border-color:#3fb950}
+
+/* BUDGET PANEL */
+.budget-panel{border-top:1px solid #21262d;padding:10px 12px;flex-shrink:0;background:linear-gradient(180deg,#0d1117,#0a0f1a)}
+.bp-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#484f58;margin-bottom:8px}
+.bp-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8b949e;margin-bottom:4px;gap:8px}
+.bp-row .bp-val{color:#c9d1d9;font-weight:600;white-space:nowrap}
+.bp-row .bp-val.zero{color:#30363d}
+.bp-row .bp-val.contracted{color:#fbbf24}
+.bp-sep{border-top:1px solid #30363d;margin:6px 0}
+.bp-total{display:flex;justify-content:space-between;font-size:13px;font-weight:800}
+.bp-total span:first-child{color:#f0f6fc}
+.bp-total span:last-child{color:#3fb950}
+
+/* MAP */
+#map{flex:1}
+
+/* Popup */
+.leaflet-popup-content-wrapper{background:#161b22!important;border:1px solid #30363d!important;border-radius:10px!important;box-shadow:0 8px 24px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:#161b22!important}
+.leaflet-popup-content{margin:11px 13px!important}
+.pop-cat{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:2px 6px;margin-bottom:5px}
+.pop-title{font-size:13px;font-weight:700;color:#f0f6fc;margin-bottom:5px;line-height:1.3}
+.pop-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#6e7681;margin-bottom:2px}
+.pop-row span:last-child{color:#c9d1d9;font-weight:600;text-align:right}
+.pop-dist{margin-top:6px;background:#0d1117;border-radius:5px;padding:4px 8px;font-size:10px;color:#3b82f6;font-weight:600;text-align:center}
+.pop-desc{margin-top:5px;font-size:10px;color:#8b949e;line-height:1.5;border-top:1px solid #21262d;padding-top:5px}
+.pop-contracted{margin-top:6px;background:#7c2d1233;border:1px solid #c2410c55;border-radius:5px;padding:4px 8px;font-size:10px;color:#fb923c;font-weight:700;text-align:center}
+
+/* EXPORT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:14px;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal-header{padding:16px 20px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between}
+.modal-header h2{font-size:15px;font-weight:700;color:#f0f6fc}
+.modal-close{background:none;border:none;color:#6e7681;font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px}
+.modal-close:hover{background:#21262d;color:#c9d1d9}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-body h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#484f58;margin:12px 0 6px}
+.modal-body h3:first-child{margin-top:0}
+.exp-item{display:flex;justify-content:space-between;font-size:12px;color:#8b949e;padding:4px 0;border-bottom:1px solid #1c2128}
+.exp-item span:last-child{color:#c9d1d9;font-weight:600}
+.exp-item.contracted-row span:first-child{color:#fbbf24}
+.exp-total-row{display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#f0f6fc;padding:10px 0 0;margin-top:6px;border-top:1px solid #388bfd55}
+.exp-total-row span:last-child{color:#3fb950}
+.modal-footer{padding:12px 20px;border-top:1px solid #21262d;display:flex;gap:8px}
+.modal-footer button{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s}
+.btn-print{background:#1f6feb;color:#fff}
+.btn-print:hover{background:#388bfd}
+.btn-csv{background:#238636;color:#fff}
+.btn-csv:hover{background:#3fb950}
+.btn-cancel{background:#21262d;color:#8b949e;border:1px solid #30363d!important}
+.btn-cancel:hover{background:#30363d}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo">🏘️</div>
+    <div class="hd-title">
+      <h1>Villagio Vêneto — Mídia OOH</h1>
+      <p>Goiânia, GO · Controle de Mídia e Orçamento em Tempo Real</p>
+    </div>
+  </div>
+  <div class="hd-budget">
+    <label>💰 Orçamento Total</label>
+    <div class="total-val" id="hd-total">R$ 0,00</div>
+  </div>
+</header>
+
+<div class="main">
+<div class="sidebar">
+<div class="sb-scroll" id="sb-scroll">
+
+  <div class="sec-title">Camadas de Visibilidade</div>
+
+  <!-- Contratadas -->
+  <div class="cat-row" id="cat-row-contracted" onclick="toggleContracted()">
+    <div class="cat-icon">✅</div>
+    <div class="cat-name">Já Contratadas</div>
+    <div class="cat-count">5 pts</div>
+    <div class="cat-price" style="color:#fbbf24">Fixo</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-contracted" checked onchange="toggleContracted()">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+  <div class="contracted-list" id="contracted-list">
+    <div id="ct-items"></div>
+  </div>
+
+  <!-- Outdoor disponível -->
+  <div class="cat-row" id="cat-row-outdoor" onclick="toggleCat('outdoor')">
+    <div class="cat-icon">📋</div>
+    <div class="cat-name">Outdoor Disponível</div>
+    <div class="cat-count">22 pts</div>
+    <div class="cat-price" id="cat-price-outdoor">—</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-outdoor" checked onchange="toggleCat('outdoor')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+  <div class="outdoor-list" id="outdoor-list">
+    <div class="od-controls">
+      <button class="od-btn" onclick="selectAllOutdoor()">✓ Selecionar Todos</button>
+      <button class="od-btn" onclick="deselectAllOutdoor()">✕ Remover Todos</button>
+    </div>
+    <div id="od-items"></div>
+  </div>
+
+  <!-- Eletromídia -->
+  <div class="cat-row" id="cat-row-eletro" onclick="toggleCat('eletro')">
+    <div class="cat-icon">📺</div>
+    <div class="cat-name">Eletromídia</div>
+    <div class="cat-count">21 pts</div>
+    <div class="cat-price" id="cat-price-eletro">R$ 2.800</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-eletro" checked onchange="toggleCat('eletro')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+  <!-- Pontos de Foco -->
+  <div class="cat-row" id="cat-row-foco" onclick="toggleCat('foco')">
+    <div class="cat-icon">🎯</div>
+    <div class="cat-name">Pontos de Foco</div>
+    <div class="cat-count">6 pts</div>
+    <div class="cat-price none">—</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-foco" checked onchange="toggleCat('foco')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+  <!-- Feiras -->
+  <div class="cat-row" id="cat-row-feiras" onclick="toggleCat('feiras')">
+    <div class="cat-icon">🛒</div>
+    <div class="cat-name">Feiras Livres</div>
+    <div class="cat-count">6 pts</div>
+    <div class="cat-price none">—</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-feiras" checked onchange="toggleCat('feiras')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+  <!-- Bares -->
+  <div class="cat-row" id="cat-row-bares" onclick="toggleCat('bares')">
+    <div class="cat-icon">🍺</div>
+    <div class="cat-name">Bares</div>
+    <div class="cat-count">3 pts</div>
+    <div class="cat-price none">—</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-bares" checked onchange="toggleCat('bares')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+  <!-- Parques -->
+  <div class="cat-row" id="cat-row-parques" onclick="toggleCat('parques')">
+    <div class="cat-icon">🌳</div>
+    <div class="cat-name">Parques</div>
+    <div class="cat-count">2 pts</div>
+    <div class="cat-price none">—</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-parques" checked onchange="toggleCat('parques')">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+  <!-- Panfletagem -->
+  <div class="cat-row">
+    <div class="cat-icon">📄</div>
+    <div class="cat-name">Panfletagem (10k)</div>
+    <div class="cat-count"></div>
+    <div class="cat-price" id="cat-price-panf">R$ 1.980</div>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="sw-panf" checked onchange="updateBudget()">
+      <div class="sw-track"></div>
+    </label>
+  </div>
+
+</div><!-- /sb-scroll -->
+
+<!-- Action buttons -->
+<div class="action-bar">
+  <button class="act-btn save" onclick="saveSelection()">💾 Salvar Seleção</button>
+  <button class="act-btn export" onclick="openExport()">📤 Exportar Resumo</button>
+</div>
+
+<!-- Budget Panel -->
+<div class="budget-panel">
+  <div class="bp-title">📊 Resumo de Orçamento</div>
+  <div class="bp-row">
+    <span>✅ Já Contratadas (5)</span>
+    <span class="bp-val contracted">A confirmar</span>
+  </div>
+  <div class="bp-row">
+    <span>📋 Outdoor (<span id="bp-od-count">0</span> selecionados)</span>
+    <span class="bp-val" id="bp-od-val">R$ 0,00</span>
+  </div>
+  <div class="bp-row">
+    <span>📺 Eletromídia</span>
+    <span class="bp-val" id="bp-eletro-val">R$ 2.800,00</span>
+  </div>
+  <div class="bp-row">
+    <span>📄 Panfletagem (10k)</span>
+    <span class="bp-val" id="bp-panf-val">R$ 1.980,00</span>
+  </div>
+  <div class="bp-sep"></div>
+  <div class="bp-total">
+    <span>Total</span>
+    <span id="bp-total">R$ 0,00</span>
+  </div>
+</div>
+
+</div><!-- /sidebar -->
+<div id="map"></div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay hidden" id="export-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📤 Exportar Seleção de Mídia</h2>
+      <button class="modal-close" onclick="closeExport()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeExport()">Fechar</button>
+      <button class="btn-csv" onclick="exportCSV()">⬇ Baixar CSV</button>
+      <button class="btn-print" onclick="printSummary()">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────
+const EMP = { lat:-16.6196875, lng:-49.2735625 };
+
+// Placas já contratadas (cor âmbar - não selecionáveis)
+const CONTRACTED = [
+  { name:'GPD0250 · Outdoor',    lat:-16.6395845, lng:-49.2401101, tipo:'Outdoor'     },
+  { name:'GPD0489 · Outdoor',    lat:-16.6456265, lng:-49.2419188, tipo:'Outdoor'     },
+  { name:'PLA1662 · Outdoor',    lat:-16.619422,  lng:-49.207653,  tipo:'Outdoor'     },
+  { name:'NGY0220 · Front Light',lat:-16.65357,   lng:-49.26312,   tipo:'Front Light' },
+  { name:'FEN0030 · Front Light',lat:-16.632073,  lng:-49.278413,  tipo:'Front Light' },
+];
+
+// Outdoor disponível
+const OUTDOOR = [
+  { name:'BRA1287 · Jardim Ipê',           lat:-16.6241216,       lng:-49.28028888,       veic:1200, lona:1080 },
+  { name:'GPD0273 · Loteamento Mansões',    lat:-16.6234288,       lng:-49.2790811,        veic:1200, lona:1080 },
+  { name:'GPD0474 · St. Crimeia Oeste',     lat:-16.6523506,       lng:-49.2639406,        veic:1200, lona:1080 },
+  { name:'ALT1235 · Zona Industrial',       lat:-16.6436,          lng:-49.296902,         veic:1200, lona:1080 },
+  { name:'7070 · Outdoor Tradicional',      lat:-16.6203611111111, lng:-49.3062777777778,  veic:900,  lona:1080 },
+  { name:'T-0005 · Totem 10×4',            lat:-16.5935993,       lng:-49.1959989,        veic:6000, lona:2700, obs:'Contrato 2 meses' },
+  { name:'T-0024 · Totem 10×4',            lat:-16.6257501,       lng:-49.258609,         veic:6000, lona:2700, obs:'Contrato 2 meses' },
+  { name:'T-0092B · Totem 10×4',           lat:-16.6490247,       lng:-49.2139861,        veic:6000, lona:2700, obs:'Contrato 2 meses' },
+  { name:'P-0273 · Painel Rodoviário 10×4', lat:-16.5605989,      lng:-49.2430903,        veic:3800, lona:2700, obs:'Contrato 2 meses' },
+  { name:'9060 · Outdoor Tradicional',      lat:-16.68600556,      lng:-49.25998056,       veic:900,  lona:1080 },
+  { name:'Q9075 · Outdoor',                 lat:-16.632917,        lng:-49.279208,         veic:1000, lona:1080 },
+  { name:'Q3867 · Outdoor',                 lat:-16.635964,        lng:-49.281917,         veic:1000, lona:1080 },
+  { name:'2937 · Outdoor',                  lat:-16.67433,         lng:-49.28243,          veic:1000, lona:1080 },
+  { name:'2679 · Outdoor',                  lat:-16.675679,        lng:-49.279033,         veic:1280, lona:1080 },
+  { name:'2353 · Outdoor',                  lat:-16.671041,        lng:-49.275379,         veic:1280, lona:1080 },
+  { name:'2800 · Outdoor',                  lat:-16.653792,        lng:-49.26319,          veic:1280, lona:1080 },
+  { name:'2816 · Outdoor',                  lat:-16.634224,        lng:-49.234278,         veic:1280, lona:1080 },
+  { name:'2808 · Outdoor',                  lat:-16.649149,        lng:-49.313644,         veic:1280, lona:1080 },
+  { name:'1098 · Outdoor',                  lat:-16.633941,        lng:-49.283696,         veic:900,  lona:1080 },
+  { name:'3902 · Outdoor',                  lat:-16.626538,        lng:-49.25329,          veic:900,  lona:1080 },
+  { name:'1097 · Outdoor',                  lat:-16.623644,        lng:-49.245727,         veic:900,  lona:1080 },
+  { name:'1095 · Outdoor',                  lat:-16.669394,        lng:-49.30197,          veic:900,  lona:1080 },
+];
+OUTDOOR.forEach(p => p.total = p.veic + p.lona);
+
+const OTHER_CATS = {
+  eletro:{icon:'📺',color:'#06b6d4',bcolor:'#0891b2',budget:2800,items:[
+    {name:'Condomínio Cerrado Family Home',   lat:-16.6654626,lng:-49.3066979},
+    {name:'Centro Médico Santa Mônica',       lat:-16.6759669,lng:-49.2717925},
+    {name:'New Way Aeroporto',                lat:-16.6726571,lng:-49.2719027},
+    {name:'Edifício Santos Dumont',           lat:-16.673072, lng:-49.2651392},
+    {name:'Wish Aeroporto - EBM',             lat:-16.6693676,lng:-49.2712717},
+    {name:'Residencial Antares',              lat:-16.6690303,lng:-49.2668155},
+    {name:'Residencial Firenze',              lat:-16.6690781,lng:-49.2714226},
+    {name:'Parthenon Center',                 lat:-16.6737709,lng:-49.2571114},
+    {name:'Banco Bradesco - Agência 0140',    lat:-16.6762625,lng:-49.2574416},
+    {name:'Goiânia Corporate Financial Center',lat:-16.6773202,lng:-49.2647397},
+    {name:'Buriti Center',                    lat:-16.6787619,lng:-49.2623877},
+    {name:'Ed. Villa Boa',                    lat:-16.6769906,lng:-49.25725},
+    {name:'Katedral Sky Rooftop',             lat:-16.6787203,lng:-49.2525361},
+    {name:'Centro Médico Campinas - CMC',     lat:-16.6668959,lng:-49.2783303},
+    {name:'Condomínio Residencial Gran Vitá', lat:-16.6348181,lng:-49.2535732},
+    {name:'Condomínio Olivença',              lat:-16.6704726,lng:-49.2456946},
+    {name:'Residencial Portal dos Mares',     lat:-16.6582172,lng:-49.239611},
+    {name:'Edifício Itaipu',                  lat:-16.6758937,lng:-49.2679461},
+    {name:'Residencial Yes! Vida Boa',        lat:-16.6511711,lng:-49.2553537},
+    {name:'Reserva Jaraguá - Torre Ipê',      lat:-16.6524835,lng:-49.2518898},
+    {name:'Reserva Jaraguá - Torre Cedro',    lat:-16.6516774,lng:-49.2518247},
+  ]},
+  foco:{icon:'🎯',color:'#a855f7',bcolor:'#7c3aed',items:[
+    {name:'Havan Goiânia',                                lat:-16.6297156,lng:-49.274039},
+    {name:'Passeio das Águas Shopping',                   lat:-16.630065, lng:-49.2781321},
+    {name:'Atacadão',                                     lat:-16.6320596,lng:-49.2753928},
+    {name:'Atacadão Dia a Dia — Jd. Balneário Meia Ponte',lat:-16.6236389,lng:-49.2860909},
+    {name:'Shark Space Park',                             lat:-16.6275519,lng:-49.2734275},
+    {name:'44 Lojas em Goiânia',                         lat:-16.6585727,lng:-49.2552271},
+  ]},
+  feiras:{icon:'🛒',color:'#eab308',bcolor:'#a16207',items:[
+    {name:'Praça do Violeiro',            lat:-16.6390888,lng:-49.2725122,desc:'Praça do Violeiro, Urias Magalhães · ter. 16h–22h'},
+    {name:'Feira Jacaré',                lat:-16.6502428,lng:-49.2661925,desc:'Av. Dom Prudêncio, Crimeia Oeste · 16h–22h'},
+    {name:'Feira Goiânia II',            lat:-16.6227985,lng:-49.2520229,desc:'Av. Frei Nazareno Confaloni · ter. 16h–22h'},
+    {name:'Feira Jardim Nova Esperança', lat:-16.6466577,lng:-49.3309392,desc:'Av. Sol Nascente · 07h–14h'},
+    {name:'Feira Livre do Negrão de Lima',lat:-16.6549825,lng:-49.2452187,desc:'Rua Roberto · qui. 16h–22h'},
+    {name:'Feira Livre do Itatiaia',     lat:-16.6041807,lng:-49.2550038,desc:'Rua R11, Itatiaia · sáb. 07h–14h'},
+  ]},
+  bares:{icon:'🍺',color:'#ef4444',bcolor:'#b91c1c',items:[
+    {name:'Marupiara Gastrobar',     lat:-16.6310627,lng:-49.2511283},
+    {name:'Boulevard Cozinha & Bar', lat:-16.6313587,lng:-49.2515134},
+    {name:'Royal Petiscaria',        lat:-16.6187545,lng:-49.2556716},
+  ]},
+  parques:{icon:'🌳',color:'#78716c',bcolor:'#44403c',items:[
+    {name:'Parque Leolídio di Ramos Caiado',lat:-16.6277138,lng:-49.2565832},
+    {name:'Bosque Goiânia 2 - II',          lat:-16.6326412,lng:-49.2495659},
+  ]},
+};
+
+// ── HELPERS ─────────────────────────────────────────────────
+function hdist(la1,ln1,la2,ln2){const R=6371e3,φ1=la1*Math.PI/180,φ2=la2*Math.PI/180,Δφ=(la2-la1)*Math.PI/180,Δλ=(ln2-ln1)*Math.PI/180,a=Math.sin(Δφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2,d=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return d<1000?Math.round(d)+'m':(d/1000).toFixed(1)+'km'}
+function fmtBRL(v){return'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function today(){return new Date().toLocaleDateString('pt-BR')}
+
+// ── STATE ────────────────────────────────────────────────────
+const vis={outdoor:true,eletro:true,foco:true,feiras:true,bares:true,parques:true,contracted:true};
+const odSel=new Array(OUTDOOR.length).fill(true);
+let ctMarkers=[],ctLines=[],odMarkers=[],odLines=[],catMarkers={},catLines={};
+Object.keys(OTHER_CATS).forEach(k=>{catMarkers[k]=[];catLines[k]=[]});
+
+// ── MAP ──────────────────────────────────────────────────────
+const map=L.map('map',{zoomControl:false}).setView([EMP.lat,EMP.lng],13);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:20}).addTo(map);
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+// Empreendimento
+const empIcon=L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:`<div style="width:22px;height:22px;background:linear-gradient(135deg,#10b981,#059669);border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(16,185,129,.25),0 4px 12px rgba(0,0,0,.5)"></div>`});
+L.marker([EMP.lat,EMP.lng],{icon:empIcon,zIndexOffset:9999}).addTo(map).bindPopup(`<div class="pop-title">🏡 Condomínio Villagio Vêneto</div>`,{maxWidth:200});
+
+// ── CONTRACTED MARKERS ───────────────────────────────────────
+function buildContractedMarkers(){
+  ctMarkers.forEach(m=>map.removeLayer(m));
+  ctLines.forEach(l=>map.removeLayer(l));
+  ctMarkers=[];ctLines=[];
+  if(!vis.contracted) return;
+  CONTRACTED.forEach(p=>{
+    const d=hdist(EMP.lat,EMP.lng,p.lat,p.lng);
+    const icon=L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],
+      html:`<div style="width:30px;height:30px;background:linear-gradient(135deg,#f59e0b,#d97706);border:2.5px solid #fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 4px 10px rgba(245,158,11,.5)">✅</div>`});
+    const m=L.marker([p.lat,p.lng],{icon,zIndexOffset:500}).addTo(map)
+      .bindPopup(`<div class="pop-cat" style="background:#7c2d1233;color:#fb923c">✅ Já Contratada</div><div class="pop-title">${p.name}</div><div class="pop-row"><span>Tipo</span><span>${p.tipo}</span></div><div class="pop-contracted">Placa já locada — contrato ativo</div><div class="pop-dist">📏 ${d} do empreendimento</div>`,{maxWidth:230});
+    const l=L.polyline([[EMP.lat,EMP.lng],[p.lat,p.lng]],{color:'#f59e0b',weight:1.5,dashArray:'4,7',opacity:.4}).addTo(map);
+    ctMarkers.push(m);ctLines.push(l);
+  });
+}
+
+// ── OUTDOOR MARKERS ──────────────────────────────────────────
+function makeOdIcon(i,sel){
+  return L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,14],
+    html:`<div style="width:28px;height:28px;background:${sel?'linear-gradient(135deg,#1d4ed8,#1e40af)':'#1e2640'};border:2px solid ${sel?'#60a5fa':'#30363d'};border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:${sel?'#fff':'#484f58'};box-shadow:0 3px 8px rgba(0,0,0,.5)">${i+1}</div>`});
+}
+function buildOutdoorMarkers(){
+  odMarkers.forEach(m=>map.removeLayer(m));
+  odLines.forEach(l=>map.removeLayer(l));
+  odMarkers=[];odLines=[];
+  if(!vis.outdoor) return;
+  OUTDOOR.forEach((p,i)=>{
+    const sel=odSel[i],d=hdist(EMP.lat,EMP.lng,p.lat,p.lng);
+    const m=L.marker([p.lat,p.lng],{icon:makeOdIcon(i,sel)}).addTo(map)
+      .bindPopup(`<div class="pop-cat" style="background:#0d2137;color:#3b82f6">📋 Outdoor Disponível</div><div class="pop-title">${p.name}</div><div class="pop-row"><span>💰 Veiculação</span><span>${fmtBRL(p.veic)}/bi</span></div><div class="pop-row"><span>🖨️ Lona</span><span>${fmtBRL(p.lona)}</span></div><div class="pop-row" style="border-top:1px solid #21262d;padding-top:4px;margin-top:2px"><span><b>Subtotal</b></span><span style="color:#e3b341;font-weight:800">${fmtBRL(p.total)}</span></div>${p.obs?`<div class="pop-desc">${p.obs}</div>`:''}<div class="pop-dist">📏 ${d} do empreendimento</div>`,{maxWidth:240});
+    const l=L.polyline([[EMP.lat,EMP.lng],[p.lat,p.lng]],{color:sel?'#3b82f6':'#21262d',weight:1.2,dashArray:'5,8',opacity:sel?.35:.15}).addTo(map);
+    odMarkers.push(m);odLines.push(l);
+  });
+}
+
+// ── OTHER CAT MARKERS ────────────────────────────────────────
+function buildCatMarkers(id){
+  catMarkers[id].forEach(m=>map.removeLayer(m));
+  catLines[id].forEach(l=>map.removeLayer(l));
+  catMarkers[id]=[];catLines[id]=[];
+  if(!vis[id]) return;
+  const cat=OTHER_CATS[id];
+  const labels={eletro:'Eletromídia',foco:'Pontos de Foco',feiras:'Feiras Livres',bares:'Bares',parques:'Parques'};
+  cat.items.forEach(p=>{
+    const d=hdist(EMP.lat,EMP.lng,p.lat,p.lng);
+    const icon=L.divIcon({className:'',iconSize:[24,24],iconAnchor:[12,12],
+      html:`<div style="width:24px;height:24px;background:linear-gradient(135deg,${cat.color},${cat.bcolor});border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 3px 8px rgba(0,0,0,.45)">${cat.icon}</div>`});
+    const m=L.marker([p.lat,p.lng],{icon}).addTo(map)
+      .bindPopup(`<div class="pop-cat" style="background:${cat.color}20;color:${cat.color}">${cat.icon} ${labels[id]}</div><div class="pop-title">${p.name}</div>${p.desc?`<div class="pop-desc">${p.desc}</div>`:''}${id==='eletro'?`<div class="pop-row" style="margin-top:4px"><span>📺 Pacote</span><span style="color:#3fb950">R$ 2.800,00 total</span></div>`:''}<div class="pop-dist">📏 ${d} do empreendimento</div>`,{maxWidth:230});
+    const l=L.polyline([[EMP.lat,EMP.lng],[p.lat,p.lng]],{color:cat.color,weight:1.2,dashArray:'5,8',opacity:.2}).addTo(map);
+    catMarkers[id].push(m);catLines[id].push(l);
+  });
+}
+
+// ── SIDEBAR: CONTRACTED LIST ─────────────────────────────────
+function buildContractedList(){
+  const el=document.getElementById('ct-items');
+  el.innerHTML='';
+  CONTRACTED.forEach(p=>{
+    const d=hdist(EMP.lat,EMP.lng,p.lat,p.lng);
+    const div=document.createElement('div');
+    div.className='ct-item';
+    div.innerHTML=`<div class="ct-badge">${p.tipo}</div><div class="ct-body"><div class="ct-name">${p.name}</div><div class="ct-sub">📏 ${d}</div></div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── SIDEBAR: OUTDOOR LIST ─────────────────────────────────────
+function buildOutdoorList(){
+  const el=document.getElementById('od-items');
+  el.innerHTML='';
+  OUTDOOR.forEach((p,i)=>{
+    const d=hdist(EMP.lat,EMP.lng,p.lat,p.lng);
+    const div=document.createElement('div');
+    div.className='od-item'+(odSel[i]?'':' deselected');
+    div.id='od-item-'+i;
+    div.innerHTML=`<div class="cb ${odSel[i]?'on':''}" id="cb-${i}"></div><div class="od-body"><div class="od-name">${p.name}</div><div class="od-prices"><span class="od-price-tag veic">Veic. ${fmtBRL(p.veic)}/bi</span><span class="od-price-tag lona">Lona ${fmtBRL(p.lona)}</span></div><div class="od-dist">📏 ${d}</div></div><div class="od-total-col">${fmtBRL(p.total)}</div>`;
+    div.addEventListener('click',()=>toggleOutdoorItem(i));
+    el.appendChild(div);
+  });
+}
+
+// ── TOGGLES ──────────────────────────────────────────────────
+function toggleContracted(){
+  vis.contracted=document.getElementById('sw-contracted').checked;
+  document.getElementById('cat-row-contracted').classList.toggle('disabled',!vis.contracted);
+  buildContractedMarkers();
+}
+function toggleCat(id){
+  vis[id]=document.getElementById('sw-'+id).checked;
+  document.getElementById('cat-row-'+id).classList.toggle('disabled',!vis[id]);
+  if(id==='outdoor'){document.getElementById('outdoor-list').style.display=vis.outdoor?'':'none';buildOutdoorMarkers();}
+  else buildCatMarkers(id);
+  updateBudget();
+}
+function toggleOutdoorItem(i){
+  odSel[i]=!odSel[i];
+  document.getElementById('od-item-'+i).classList.toggle('deselected',!odSel[i]);
+  document.getElementById('cb-'+i).classList.toggle('on',odSel[i]);
+  if(odMarkers[i]){odMarkers[i].setIcon(makeOdIcon(i,odSel[i]));odLines[i].setStyle({color:odSel[i]?'#3b82f6':'#21262d',opacity:odSel[i]?.35:.12});}
+  updateBudget();
+}
+function selectAllOutdoor(){odSel.fill(true);buildOutdoorMarkers();buildOutdoorList();updateBudget()}
+function deselectAllOutdoor(){odSel.fill(false);buildOutdoorMarkers();buildOutdoorList();updateBudget()}
+
+// ── BUDGET ───────────────────────────────────────────────────
+function calcTotal(){
+  let odTotal=0;
+  if(vis.outdoor) OUTDOOR.forEach((p,i)=>{if(odSel[i])odTotal+=p.total});
+  const eletro=vis.eletro?2800:0;
+  const panf=document.getElementById('sw-panf').checked?1980:0;
+  return {odTotal,eletro,panf,grand:odTotal+eletro+panf};
+}
+function updateBudget(){
+  const {odTotal,eletro,panf,grand}=calcTotal();
+  let odCount=vis.outdoor?odSel.filter(Boolean).length:0;
+  document.getElementById('hd-total').textContent=fmtBRL(grand);
+  const odPEl=document.getElementById('cat-price-outdoor');
+  odPEl.textContent=odCount>0&&vis.outdoor?fmtBRL(odTotal):'—';
+  odPEl.style.color=odCount>0&&vis.outdoor?'#3fb950':'#30363d';
+  const ePEl=document.getElementById('cat-price-eletro');
+  ePEl.textContent=vis.eletro?'R$ 2.800':'—';ePEl.style.color=vis.eletro?'#3fb950':'#30363d';
+  const pPEl=document.getElementById('cat-price-panf');
+  const panfOn=document.getElementById('sw-panf').checked;
+  pPEl.textContent=panfOn?'R$ 1.980':'—';pPEl.style.color=panfOn?'#3fb950':'#30363d';
+  document.getElementById('bp-od-count').textContent=odCount;
+  const odVEl=document.getElementById('bp-od-val');odVEl.textContent=fmtBRL(odTotal);odVEl.className='bp-val'+(odTotal===0?' zero':'');
+  const eVEl=document.getElementById('bp-eletro-val');eVEl.textContent=fmtBRL(eletro);eVEl.className='bp-val'+(eletro===0?' zero':'');
+  const pVEl=document.getElementById('bp-panf-val');pVEl.textContent=fmtBRL(panf);pVEl.className='bp-val'+(panf===0?' zero':'');
+  document.getElementById('bp-total').textContent=fmtBRL(grand);
+}
+
+// ── SAVE SELECTION (JSON download) ───────────────────────────
+function saveSelection(){
+  const {odTotal,eletro,panf,grand}=calcTotal();
+  const selectedOutdoor=OUTDOOR.filter((_,i)=>vis.outdoor&&odSel[i]);
+  const data={
+    projeto:'Villagio Vêneto — Seleção de Mídia OOH',
+    data:today(),
+    selecao:{
+      contratadas:CONTRACTED.map(p=>({nome:p.name,tipo:p.tipo})),
+      outdoor_selecionado:selectedOutdoor.map(p=>({nome:p.name,veiculacao:p.veic,lona:p.lona,total:p.total})),
+      eletromidia:{ativo:vis.eletro,valor:2800},
+      panfletagem:{ativo:document.getElementById('sw-panf').checked,qtd:10000,valor:1980},
+    },
+    orcamento:{outdoor:odTotal,eletromidia:eletro,panfletagem:panf,total:grand}
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`selecao-midia-villagio-${today().replace(/\//g,'-')}.json`;a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── EXPORT MODAL ─────────────────────────────────────────────
+function openExport(){
+  const {odTotal,eletro,panf,grand}=calcTotal();
+  const selOd=OUTDOOR.filter((_,i)=>vis.outdoor&&odSel[i]);
+  const panfOn=document.getElementById('sw-panf').checked;
+  let html=``;
+  html+=`<h3>✅ Já Contratadas (${CONTRACTED.length} placas)</h3>`;
+  CONTRACTED.forEach(p=>html+=`<div class="exp-item contracted-row"><span>${p.name}</span><span>${p.tipo}</span></div>`);
+  html+=`<h3>📋 Outdoor Selecionado (${selOd.length} placas)</h3>`;
+  if(selOd.length===0) html+=`<div class="exp-item"><span style="color:#484f58">Nenhuma placa selecionada</span><span>—</span></div>`;
+  else selOd.forEach(p=>html+=`<div class="exp-item"><span>${p.name}</span><span>${fmtBRL(p.total)}</span></div>`);
+  if(selOd.length>0) html+=`<div class="exp-item" style="font-weight:600;color:#c9d1d9"><span>Subtotal Outdoor</span><span>${fmtBRL(odTotal)}</span></div>`;
+  html+=`<h3>📺 Eletromídia</h3><div class="exp-item"><span>Pacote completo (21 pontos)</span><span>${vis.eletro?fmtBRL(2800):'—'}</span></div>`;
+  html+=`<h3>📄 Panfletagem</h3><div class="exp-item"><span>10.000 panfletos</span><span>${panfOn?fmtBRL(1980):'—'}</span></div>`;
+  html+=`<div class="exp-total-row"><span>Total Geral</span><span>${fmtBRL(grand)}</span></div>`;
+  html+=`<p style="font-size:10px;color:#484f58;margin-top:12px">Gerado em ${today()} · Villagio Vêneto — Mídia OOH</p>`;
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('export-modal').classList.remove('hidden');
+}
+function closeExport(){document.getElementById('export-modal').classList.add('hidden')}
+
+// ── EXPORT CSV ───────────────────────────────────────────────
+function exportCSV(){
+  const {odTotal,eletro,panf,grand}=calcTotal();
+  const selOd=OUTDOOR.filter((_,i)=>vis.outdoor&&odSel[i]);
+  const panfOn=document.getElementById('sw-panf').checked;
+  let csv='Tipo;Nome;Veiculação;Lona;Total\n';
+  CONTRACTED.forEach(p=>csv+=`Contratada;${p.name};;;A confirmar\n`);
+  selOd.forEach(p=>csv+=`Outdoor;${p.name};${p.veic};${p.lona};${p.total}\n`);
+  if(vis.eletro) csv+=`Eletromídia;Pacote completo (21 pontos);;;2800\n`;
+  if(panfOn)     csv+=`Panfletagem;10.000 panfletos;;;1980\n`;
+  csv+=`\nTotal;;;; ${grand}\n`;
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`selecao-midia-villagio-${today().replace(/\//g,'-')}.csv`;a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── PRINT ────────────────────────────────────────────────────
+function printSummary(){
+  const content=document.getElementById('modal-body').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Villagio Vêneto — Mídia OOH</title><style>body{font-family:Arial,sans-serif;max-width:600px;margin:30px auto;color:#111}h1{font-size:18px;margin-bottom:4px}p.sub{font-size:12px;color:#666;margin-bottom:20px}h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;margin:16px 0 6px;border-bottom:1px solid #eee;padding-bottom:4px}.exp-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f0f0f0}.exp-item.contracted-row span:first-child{color:#b45309;font-weight:600}.exp-total-row{display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:12px 0 0;border-top:2px solid #3b82f6;margin-top:8px}span:last-child{text-align:right}</style></head><body><h1>Villagio Vêneto — Seleção de Mídia OOH</h1><p class="sub">Gerado em ${today()}</p>${content}</body></html>`);
+  w.document.close();w.print();
+}
+
+// ── FIT BOUNDS & INIT ─────────────────────────────────────────
+const allPts=[[EMP.lat,EMP.lng],...CONTRACTED.map(p=>[p.lat,p.lng]),...OUTDOOR.map(p=>[p.lat,p.lng])];
+Object.values(OTHER_CATS).forEach(c=>c.items.forEach(p=>allPts.push([p.lat,p.lng])));
+buildContractedList();
+buildOutdoorList();
+buildContractedMarkers();
+buildOutdoorMarkers();
+Object.keys(OTHER_CATS).forEach(buildCatMarkers);
+map.fitBounds(L.latLngBounds(allPts).pad(0.08));
+updateBudget();
+</script>
+</body>
+</html>
